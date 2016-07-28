@@ -1,1 +1,5 @@
 planedata.py
+*.pyc
+data
+dst
+tmp

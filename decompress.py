@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import zipfile
 from unrar import rarfile
 import os
@@ -44,7 +46,7 @@ class ZFile(object):
             file(f, 'wb').write(self.zfile.read(filename))
         self.zfile.close()
 
-class rfile(object):
+class RFile(object):
 
     # 目前unrar这个库只允许'r'模式
     def __init__(self, filename, mode='r'):
@@ -52,8 +54,9 @@ class rfile(object):
         self.rfile = rarfile.RarFile(filename, mode)
 
     def extract_to(self, path):
-        for f in self.rfile.namelist():
-            self.__extract(f, path)
+        self.rfile.extractall(path)
+        # for f in self.rfile.namelist():
+        #     self.__extract(f, path)
 
     def __extract(self, filename, path):
         if not filename.endswith('/'):
@@ -62,3 +65,4 @@ class rfile(object):
             if not os.path.exists(_dir):
                 os.makedirs(_dir)
             file(f, 'wb').write(self.rfile.open(filename))
+        self.rfile.close()

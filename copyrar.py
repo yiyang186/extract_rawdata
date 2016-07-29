@@ -4,7 +4,9 @@ import shutil
 import random
 import os, sys, re
 from optparse import OptionParser
-from decompress import *
+import zipfile
+from unrar import rarfile
+# from decompress import *
 from planes import *  # 该模块不上传
 # import webbrowser
 
@@ -23,6 +25,9 @@ class DirTree(object):
     def __init__(self, source, tmp):
         self.root = self.build_dirtree(source)
         self.tempdir = tmp
+        if not os.path.exists(self.tempdir):
+            print "make new directory named", tmp
+            os.makedirs(tmp)
 
     def build_dirtree(self, _path):
         node = DirNode(_path)
@@ -44,19 +49,26 @@ class DirTree(object):
 
     def extract(self, data_path, dst):
         filename, ext = os.path.splitext(data_path)
+        _path, _name = os.path.split(filename)
         # ext以'.'开头，为'.rar'的样式
         if ext == '.zip':
-            zfile = ZFile(data_path)
-            zfile.extract_to(self.tempdir)
-            dtTmp = DirTree(self.tempdir, self.tempdir)
+            zfile = zipfile.ZipFile(data_path, 'r')
+            unzip_dir = os.path.join(self.tempdir, _name)
+            os.makedirs(unzip_dir)
+            zfile.extractall(unzip_dir)
+            dtTmp = DirTree(unzip_dir, os.path.join(unzip_dir, 'tmp'))
             dtTmp.extract_to(self.dst)
-            self.remove_extracted(data_path)
+            print "delete", unzip_dir
+            shutil.rmtree(unzip_dir)
         elif ext == '.rar':
-            rfile = RFile(data_path)
-            rfile.extract_to(self.tempdir)
-            dtTmp = DirTree(self.tempdir, self.tempdir)
+            rfile = rarfile.RarFile(data_path, 'r')
+            unrar_dir = os.path.join(self.tempdir, _name)
+            os.makedirs(unrar_dir)
+            rfile.extractall(unrar_dir)
+            dtTmp = DirTree(unrar_dir, os.path.join(unrar_dir, 'tmp'))
             dtTmp.extract_to(self.dst)
-            self.remove_extracted(data_path)
+            print "delete", unrar_dir
+            shutil.rmtree(unrar_dir)
         elif ext in ['.lod', '.DAT', '.dat']:
             path, filename = os.path.split(data_path)
             abspath = self.replace_filename(data_path[4:]) # 只要绝对路径的第4位以后的部分，即不要E:\\
@@ -67,7 +79,7 @@ class DirTree(object):
             shutil.copy(data_path, _dst)
             print filename
             if len(filename) <= 8:
-                new_filename = self.random_filename(filename[: -4], ext, 10)
+                new_filename = self.random_filename(filename[: -4], ext, 12)
                 new_data_path = os.path.join(_dst, new_filename)
                 old_data_path = os.path.join(_dst, filename)
                 os.rename(old_data_path, new_data_path)
@@ -93,7 +105,6 @@ class DirTree(object):
         planenum = filter(lambda s: planenums.has_key(s), substrs)
         if len(planenum) > 1:
             print planenum, filename
-            return planenum[0]
         if len(planenum) == 0:
             return 'unkown'        # 不清楚机尾号的数据放在unkown目录下
         return planenum[0]
@@ -102,12 +113,12 @@ class DirTree(object):
         # 返回字符串中指定长度的子串
         return [_str[i: i + length] for i in range(len(_str) + 1 - length)]
 
-    def remove_extracted(self, filename):
-        path, filename = os.path.split(filename)
-        filename, ext = os.path.splitext(filename)
-        toberemoved = os.path.join(self.tempdir, filename)
-        print toberemoved
-        shutil.rmtree(toberemoved)
+    # def remove_extracted(self, filename):
+    #     path, filename = os.path.split(filename)
+    #     filename, ext = os.path.splitext(filename)
+    #     toberemoved = os.path.join(self.tempdir, filename)
+    #     if toberemoved
+    #     shutil.rmtree(toberemoved)
 
 if __name__ == '__main__':
     op = OptionParser()
@@ -124,11 +135,7 @@ if __name__ == '__main__':
         print "make new directory named", opts.dst
         os.makedirs(opts.dst)
 
-    if not os.path.exists(opts.tmp):
-        print "make new directory named", opts.tmp
-        os.makedirs(opts.tmp)
-
-    if os.path.isdir(opts.src) and os.path.isdir(opts.dst) and os.path.isdir(opts.tmp):
+    if os.path.isdir(opts.src) and os.path.isdir(opts.dst):
         dt = DirTree(opts.src, opts.tmp)
         dt.extract_to(opts.dst)
     

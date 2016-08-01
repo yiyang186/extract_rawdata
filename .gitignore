@@ -1,5 +1,9 @@
 planes.py
+decompress.py
 *.pyc
 data
 dst
 tmp
+
+*.log
+*.conf
